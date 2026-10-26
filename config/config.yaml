@@ -1,0 +1,35 @@
+meta:
+  status: "synthetic"        # "synthetic" | "provvisory" | "real" -> it blocks the final run if != "real"
+  currency: "USD"
+  scale: "billions"          # of USD
+  valuation_date: "2026-10-21"
+  horizon_years: 10          # H = 10 years projection
+
+simulation:
+  seed: 42                   # does not metter what you choose but fixing it from the beginning allows reproducibility of our simiulation if we would like to check somenthing
+  n_paths: 10000
+
+revenues:
+  r0: 90                     # we will receive the actual data from gropus G1 and G4
+  sigma: 0.04                # annual volatility (still synthetic)
+  g_path: [0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04]
+
+fcff_parameters:             # these data should arrive from G2
+  margin: [0.16, 0.16, 0.16, 0.16, 0.16, 0.16, 0.16, 0.16, 0.16, 0.16]
+  tax_rate: [0.21, 0.21, 0.21, 0.21, 0.21, 0.21, 0.21, 0.21, 0.21, 0.21]
+  reinvestment_rate: [0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25]
+
+rates_and_terminal:          # these data should arrive from G2 and G3
+  wacc_path: [0.075, 0.0755, 0.075, 0.075, 0.075, 0.075, 0.075, 0.075, 0.075, 0.075]
+  wacc_terminal: 0.075
+  g_terminal:0.025
+  roic_terminal:0.12
+  margin_terminal:0.16
+  tax_terminal:0.21
+
+bridge:                      # these data should arrive from G3
+ cahs:6.0
+ non_operatin_assets:1.5
+ total_debt:42.0
+  minorites_and_other: 0.5
+ diluted_shares: 1.38         # these too go in billions of shares available in the market

@@ -1,7 +1,7 @@
-from src.revenues import simulate_revenues, estimate_sigma
-from src.fcff import compute_fcff
-from src.rates import ???
-from src.bridge import ???
+from src.revenues.model import simulate_revenues, estimate_sigma
+from src.fcff.model import compute_fcff
+from src.rates.model import ???
+from src.bridge.model import ???
 
 
 def run_pipeline(cfg: dict, is_final_run: bool = False, override_sigma: float = None, g3_functions: dict = None) -> dict:

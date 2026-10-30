@@ -32,7 +32,7 @@ def run_pipeline(cfg: dict, is_final_run: bool = False, override_sigma: float = 
 
   # chain execution G1->G2->G3, the name are provvisory: we will implement the right functions once we have them
   revs = simulate_revenues(r0 = r0, g_path = g_path, sigma = sigma, n_paths = n_paths, seed = seed)
-  fcff_out = fcff(ricavi = revs, r0, params = cfg["fcff_params"])
+  fcff_out = fcff(ricavi = revs, r0, params = cfg["fcff_parameters"])
   ev_out = compute_enterprise_value(revenues = revs, fcff = fcff_out["fcff"], rates_and_terminal = cfg["rates_and_terminal"], g3_functions = g3_functions)
   bridge_out = compute_equity_and_price(ev = ev_out["enterprise_value"], bridge_parameters = cfg["bridge"], g3_functions = g3_functions)
 

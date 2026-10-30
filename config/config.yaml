@@ -1,4 +1,4 @@
-meta:
+emeta:
   status: "synthetic"        # "synthetic" | "provvisory" | "real" -> it blocks the final run if != "real"
   currency: "USD"
   scale: "billions"          # of USD
@@ -15,9 +15,12 @@ revenues:
   g_path: [0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04]
 
 fcff_parameters:             # these data should arrive from G2
-  margin: [0.16, 0.16, 0.16, 0.16, 0.16, 0.16, 0.16, 0.16, 0.16, 0.16]
-  tax_rate: [0.21, 0.21, 0.21, 0.21, 0.21, 0.21, 0.21, 0.21, 0.21, 0.21]
-  reinvestment_rate: [0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25]
+  margine: [0.16, 0.16, 0.16, 0.16, 0.16, 0.16, 0.16, 0.16, 0.16, 0.16]
+  aliquota: [0.21, 0.21, 0.21, 0.21, 0.21, 0.21, 0.21, 0.21, 0.21, 0.21]
+  da: [0.0, 0.0, 0.0, 0.0, 0.0]
+  capex: [0.0, 0.0, 0.0, 0.0, 0.0]
+  nwc: [0.0, 0.0, 0.0, 0.0, 0.0]
+  reinv_rate: [0.25, 0.25, 0.25, 0.25, 0.25]
 
 rates_and_terminal:          # these data should arrive from G2 and G3
   wacc_path: [0.075, 0.0755, 0.075, 0.075, 0.075, 0.075, 0.075, 0.075, 0.075, 0.075]

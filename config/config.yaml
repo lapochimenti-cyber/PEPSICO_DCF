@@ -21,6 +21,7 @@ fcff_parameters:             # these data should arrive from G2
   capex: [0.0, 0.0, 0.0, 0.0, 0.0]
   nwc: [0.0, 0.0, 0.0, 0.0, 0.0]
   reinv_rate: [0.25, 0.25, 0.25, 0.25, 0.25]
+  status: 
 
 rates_and_terminal:          # these data should arrive from G2 and G3
   wacc_path: [0.075, 0.0755, 0.075, 0.075, 0.075, 0.075, 0.075, 0.075, 0.075, 0.075]

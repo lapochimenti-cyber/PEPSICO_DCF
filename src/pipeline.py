@@ -1,11 +1,19 @@
+import yaml
+import numpy as np
+from pathlib import Path
+
 from src.revenues.model import simulate_revenues, estimate_sigma
 from src.fcff.model import fcff
 from src.rates.model import ???
 from src.bridge.model import ???
 
 
-def run_pipeline(cfg: dict, is_final_run: bool = False, override_sigma: float = None, g3_functions: dict = None) -> dict:
-
+def run_pipeline(config_path: str, is_final_run: bool = False, override_sigma: float = None, g3_functions: dict = None) -> dict:
+  
+  base_dir = Path(__file__).resolve().parent.parent
+    with open(base_dir / config_path, "r") as f:
+        cfg = yaml.safe_load(f)
+  
   # the final run needs to stop if the data are synthetic or temporary
   status = cfg["meta"]["status"]
 

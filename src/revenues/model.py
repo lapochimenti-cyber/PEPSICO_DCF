@@ -36,3 +36,23 @@ def simulate_revenues(r0: float, g_path: np.ndarray, sigma: float, n_paths: int,
   revenues_matrix = np.exp(cumulative_log_growth) * r0
 
   return revenues_matrix
+
+if __name__ == "__main__":
+  
+    base_dir = Path(__file__).resolve().parent.parent.parent
+    csv_path = base_dir / "data" / "D04_ricavi_v1_G1.csv"
+    
+    df = pd.read_csv(csv_path)
+    print("Number of columns found of D04 file:", df.columns.tolist())
+    
+    revenues_column = "name"                         # use the right name displayed on the CSV file with the data
+  
+    historical_revenues = df[revenues_column].to_numpy()
+
+    estimated_sigma = estimate_sigma(hisotrical_revenues)
+    last_rev_r0 = historical_revenues[-1]
+    
+    print("-" * 50)
+    print(f"Last hisotrical revenue (r0): {last_rev_r0:.4f}")
+    print(f"Estimated sigma (update config.yaml): {estimated_sigma:.6f}")
+    print("-" * 50)

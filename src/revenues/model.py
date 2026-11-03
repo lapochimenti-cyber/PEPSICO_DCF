@@ -41,21 +41,27 @@ def simulate_revenues(r0: float, g_path: np.ndarray, sigma: float, n_paths: int,
   return revenues_matrix
 
 if __name__ == "__main__":
-  
-    base_dir = Path(__file__).resolve().parent.parent.parent
-    csv_path = base_dir / "data" / "D04_ricavi_v1_G1.csv"
-    
-    df = pd.read_csv(csv_path)
-    print("Number of columns found of D04 file:", df.columns.tolist())
-    
-    revenues_column = "name"                         # use the right name displayed on the CSV file with the data
-  
-    historical_revenues = df[revenues_column].to_numpy()
+    # 1. Trova il percorso del CSV partendo da src/revenues/model.py
+    BASE_DIR = Path(__file__).resolve().parent.parent.parent
+    csv_path = BASE_DIR / "data" / "D04_ricavi_v1_G1.csv"
 
-    estimated_sigma = estimate_sigma(historical_revenues)
-    last_rev_r0 = historical_revenues[-1]
-    
-    print("-" * 50)
-    print(f"Last hisotrical revenue (r0): {last_rev_r0:.4f}")
-    print(f"Estimated sigma (update config.yaml): {estimated_sigma:.6f}")
-    print("-" * 50)
+    # 2. Legge il CSV specificando che il separatore usato da G1 è il punto e virgola ';'
+    df = pd.read_csv(csv_path, sep=";")
+
+    # 3. Estrae la serie storica dei ricavi corretti in miliardi di USD ($B) ordinata per anno
+    df = df.sort_values("Anno").reset_index(drop=True)
+    ricavi_storici = df["Ricavi Corretti ($B)"].to_numpy(dtype=float)
+
+    # 4. Chiama la tua funzione estimate_sigma!
+    # NOTA: controlla nella tua estimate_sigma di avere ddof=1 dentro np.std(log_returns, ddof=1)
+    sigma_hat = estimate_sigma(ricavi_storici)
+    r0 = float(ricavi_storici[-1])
+    anno_base = int(df["Anno"].iloc[-1])
+
+    print("=" * 55)
+    print("CALIBRAZIONE RICAVI DA D04 (G1 -> G4)")
+    print("=" * 55)
+    print(f"Anni analizzati:            {df['Anno'].iloc[0]} - {anno_base} ({len(ricavi_storici)-1} variazioni YoY)")
+    print(f"Ricavo anno base r0 ({anno_base}): {r0:.3f} ($B)")
+    print(f"Sigma stimato (ddof=1):     {sigma_hat:.6f} ({sigma_hat*100:.2f}%)")
+    print("=" * 55)

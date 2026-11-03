@@ -10,8 +10,8 @@ simulation:
   n_paths: 10000
 
 revenues:
-  r0: 90                     # we will receive the actual data from gropus G1 and G4
-  sigma: 0.04                # annual volatility (still synthetic)
+  r0: 93.925                     # we will receive the actual data from gropus G1 and G4
+  sigma: 0.050931                # annual volatility (still synthetic)
   g_path: [0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04]
 
 fcff_parameters:             # these data should arrive from G2

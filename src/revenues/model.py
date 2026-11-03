@@ -1,4 +1,7 @@
 import numpy as np
+import pandas as pd
+from pathlib import Path
+
 
 def estimate_sigma (historical_revenues: np.array) -> float:
 
@@ -49,7 +52,7 @@ if __name__ == "__main__":
   
     historical_revenues = df[revenues_column].to_numpy()
 
-    estimated_sigma = estimate_sigma(hisotrical_revenues)
+    estimated_sigma = estimate_sigma(historical_revenues)
     last_rev_r0 = historical_revenues[-1]
     
     print("-" * 50)

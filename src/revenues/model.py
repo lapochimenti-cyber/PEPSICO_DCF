@@ -11,9 +11,9 @@ def estimate_sigma (historical_revenues: np.array) -> float:
   log_returns = np.log(historical_revenues[1:] / historical_revenues[:-1])
 
   # if we want to use as stated in the guide the Bessel approximation for the std we can write
-  # return float(np.std(log_returns, ddof = 1))
+  
+  return float(np.std(log_returns, ddof = 1))
 
-  return float(np.std(log_returns))
 
 def simulate_revenues(r0: float, g_path: np.ndarray, sigma: float, n_paths: int, seed: int) -> np.ndarray:
 
@@ -65,3 +65,5 @@ if __name__ == "__main__":
     print(f"Ricavo anno base r0 ({anno_base}): {r0:.3f} ($B)")
     print(f"Sigma stimato (ddof=1):     {sigma_hat:.6f} ({sigma_hat*100:.2f}%)")
     print("=" * 55)
+
+    

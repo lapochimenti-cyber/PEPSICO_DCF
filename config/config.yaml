@@ -1,5 +1,5 @@
 emeta:
-  status: "synthetic"        # "synthetic" | "provvisory" | "real" -> it blocks the final run if != "real"
+  status: "provvisory"        # "synthetic" | "provvisory" | "real" -> it blocks the final run if != "real"
   currency: "USD"
   scale: "billions"          # of USD
   valuation_date: "2026-10-21"
@@ -11,7 +11,7 @@ simulation:
 
 revenues:
   r0: 93.925                     # we will receive the actual data from gropus G1 and G4
-  sigma: 0.050931                # annual volatility (still synthetic)
+  sigma: 0.053417                # annual volatility (provvisory)
   g_path: [0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04]
 
 fcff_parameters:             # these data should arrive from G2
@@ -23,17 +23,40 @@ fcff_parameters:             # these data should arrive from G2
   reinv_rate: [0.25, 0.25, 0.25, 0.25, 0.25]
   status: 
 
-rates_and_terminal:          # these data should arrive from G2 and G3
-  wacc_path: [0.075, 0.0755, 0.075, 0.075, 0.075, 0.075, 0.075, 0.075, 0.075, 0.075]
-  wacc_terminal: 0.075
-  g_terminal:0.025
-  roic_terminal:0.12
-  margin_terminal:0.16
-  tax_terminal:0.21
+rates_and_terminal:          # G3 (D08 v1) + G2
+  price_share: 138.83        # Chiusura 2026-10-22
+  rf: 0.0496                 # 10Y Treasury FRED DGS10
+  erp: 0.042                 # Implied ERP Damodaran
+  rd: 0.0566                 # Pre-tax cost of debt (A+)
+  beta_growth: 0.52          # Beta osservato PEP (provvisorio in attesa di D09)
+  beta_maturity: 0.80        # Ipotesi G3 di convergenza a maturità
+  k_transition: 0.5          # Velocità di convergenza WACC anni 6-10
+  diluted_shares: 1.366
+  debt_total_wacc: 51.881    # 9.223 (short-term) + 42.658 (long-term)
+  g_terminal: 0.02           # g_inf provvisorio
+  roic_terminal: 0.10        # ROIC_inf provvisorio
+  margin_terminal: 0.16      # da allineare con G2
+  tax_terminal: 0.21         # H10
 
-bridge:                      # these data should arrive from G3
- cahs:6.0
- non_operatin_assets:1.5
- total_debt:42.0
-  minorites_and_other: 0.5
- diluted_shares: 1.38         # these too go in billions of shares available in the market
+bridge:                      # G3 (Ponte EV -> Equity, somma attesa: -41.111 USD bn)
+  diluted_shares: 1.366
+  items:
+    cash_and_equivalents: 10.675
+    short_term_investments: 0.488
+    tropicana_39_pct: 0.0
+    celsius_convertible_preferred: 1.482
+    short_term_debt: -9.223
+    long_term_debt: -42.658
+    euro_notes_oct_2026: -1.126
+    pension_and_medical_after_tax: -0.55379   # -(0.233 + 0.468) * (1 - 0.21)
+    non_controlling_interests: -0.195
+  provisional_items:
+    - "cash_and_equivalents"
+    - "short_term_investments"
+    - "celsius_convertible_preferred"
+    - "short_term_debt"
+    - "long_term_debt"
+    - "euro_notes_oct_2026"
+    - "pension_and_medical_after_tax"
+    - "non_controlling_interests"
+    - "diluted_shares"

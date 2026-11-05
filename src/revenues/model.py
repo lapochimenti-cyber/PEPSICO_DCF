@@ -41,19 +41,16 @@ def simulate_revenues(r0: float, g_path: np.ndarray, sigma: float, n_paths: int,
   return revenues_matrix
 
 if __name__ == "__main__":
-    # 1. Trova il percorso del CSV partendo da src/revenues/model.py
+
     BASE_DIR = Path(__file__).resolve().parent.parent.parent
     csv_path = BASE_DIR / "data" / "D04_ricavi_v1_G1.csv"
 
-    # 2. Legge il CSV specificando che il separatore usato da G1 è il punto e virgola ';'
+    # read the CSV file specifiying to the compiler that the separator used is the ';'
     df = pd.read_csv(csv_path, sep=";")
 
-    # 3. Estrae la serie storica dei ricavi corretti in miliardi di USD ($B) ordinata per anno
     df = df.sort_values("Anno").reset_index(drop=True)
     ricavi_storici = df["Ricavi Corretti ($B)"].to_numpy(dtype=float)
 
-    # 4. Chiama la tua funzione estimate_sigma!
-    # NOTA: controlla nella tua estimate_sigma di avere ddof=1 dentro np.std(log_returns, ddof=1)
     sigma_hat = estimate_sigma(ricavi_storici)
     r0 = float(ricavi_storici[-1])
     anno_base = int(df["Anno"].iloc[-1])

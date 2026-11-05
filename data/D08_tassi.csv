@@ -1,0 +1,26 @@
+# D08 tassi e WACC - G3 -> G4 PROVVISORIO ;
+# Tassi in decimali; importi in miliardi di USD
+"parametro,""valore"",""data"",""fonte"",""stato""";
+"rf,""0.0496"",""2026-10-22"",""FRED DGS10 (LSEG FRTCM10)"",""provvisorio""";
+"erp,""0.042"",""2026-10-01"",""Damodaran ERPbymonth.xlsx, T12m sustainable payout"",""provvisorio""";
+"beta_observed_pep,""0.52"",""2020-01/2025-12"",""G5 D20, regressione mensile PEP vs S&P 500 (SPY)"",""provvisorio""";
+"beta_unlevered,""0.4276"","""",""da beta_observed_pep con Hamada";" poi mediana peer (D09)"",""provvisorio"""
+"beta_levered_growth,""0.52"","""",""calcolato"",""provvisorio""";
+"beta_levered_maturity,""0.8"","""",""ipotesi G3"",""provvisorio""";
+"interest_coverage,""6.249"",""2025"",""10-K p. 57 e p. 51"",""reale""";
+"synthetic_rating,""A1/A+"",""2026-01"",""Damodaran ratings.html"",""provvisorio""";
+"default_spread,""0.007"",""2026-01"",""Damodaran ratings.html"",""provvisorio""";
+"rd_pretax,""0.0566"","""",""rf + spread"",""provvisorio""";
+"tax_marginal,""0.21"","""",""10-K p. 78"",""provvisorio""";
+"price,""138.83"",""2026-10-22"",""Nasdaq, chiusura"",""provvisorio""";
+"diluted_shares_bn,""1.366"",""2026-10-01"",""10-Q copertina e p. 26"",""provvisorio""";
+"equity_market_value_bn,""189.642"",""2026-10-22"",""calcolato"",""provvisorio""";
+"debt_bn,""51.881"",""2026-09-05"",""10-Q p. 6 (valore contabile)"",""provvisorio""";
+"debt_weight,""0.2148"","""",""calcolato"",""provvisorio""";
+"cost_of_equity_growth,""0.07144"","""",""CAPM"",""provvisorio""";
+"cost_of_equity_maturity,""0.0832"","""",""CAPM"",""provvisorio""";
+"wacc_growth,""0.0657"","""",""calcolato"",""provvisorio""";
+"wacc_maturity,""0.07493"","""",""calcolato"",""provvisorio""";
+"k_transition,""0.5"","""",""paper su Arm, App. B"",""provvisorio""";
+"years_growth,""5"","""",""G2"",""provvisorio""";
+"years_transition,""5"","""",""G2"",""provvisorio""";

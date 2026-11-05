@@ -8,11 +8,11 @@ from src.retes.model import compute_enterprise_value
 from src.bridge.model import compute_equity_and_price
 
 
-def run_pipeline(config_path: str, is_final_run: bool = False, override_sigma: float = None, g3_functions: dict = None) -> dict:
+def run_pipeline(config_path: str, is_final_run: bool = False, override_sigma: float = None) -> dict:
   
   base_dir = Path(__file__).resolve().parent.parent
-    with open(base_dir / config_path, "r") as f:
-        cfg = yaml.safe_load(f)
+  with open(base_dir / config_path, "r") as f:
+    cfg = yaml.safe_load(f)
   
   # the final run needs to stop if the data are synthetic or temporary
   status = cfg["meta"]["status"]
@@ -20,17 +20,12 @@ def run_pipeline(config_path: str, is_final_run: bool = False, override_sigma: f
   if is_final_run and status != "real":
     raise RuntimeError("Pipeline block: all data need to be in status 'real'!")
 
-  if g3_functions is None:
-    raise RuntimeError("Pending G3 repo functions: connect G3_FUNCTIONS before running")
-
-  for name in ("build_wacc_path", "compute_terminal_value", "compute_equity_and_price"):
-    if not callable(g3_functions.get(name)):
-      raise ValueError(f"Missing G3 adapter: {name}")
-
+  '''
   if any(cfg["rates_and_terminal"][key].get(stage) is None
          for key in ("stage_years", "wacc_by_stage")
          for stage in ("growth", "transition", "maturity")):
     raise ValueError("Pending G2/G3: stage durations and WACC values are required")
+  '''
 
   seed = int(cfg["simulation"]["seed"])
   n_paths = int(cfg["simulation"]["n_paths"])
@@ -38,14 +33,15 @@ def run_pipeline(config_path: str, is_final_run: bool = False, override_sigma: f
   g_path = np.asarray(cfg["revenues"]["g_path"], dtype = float)
   sigma = float(cfg["revenues"]["sigma"]) if override_sigma is None else override_sigma
 
+
   # chain execution G1->G2->G3, the name are provvisory: we will implement the right functions once we have them
   revs = simulate_revenues(r0 = r0, g_path = g_path, sigma = sigma, n_paths = n_paths, seed = seed)
-  fcff_out = fcff(ricavi = revs, r0 = ASSUMPTIONS_V0["ricavo_base"], params = PARAMS_V0)
-  ev_out = compute_enterprise_value(revenues = revs, fcff = fcff_out["fcff"], rates_and_terminal = cfg["rates_and_terminal"], g3_functions = g3_functions)
-  bridge_out = compute_equity_and_price(ev = ev_out["enterprise_value"], bridge_parameters = cfg["bridge"], g3_functions = g3_functions)
+  fcff_out = fcff(ricavi = revs, ricavo_base = ASSUMPTIONS_V0["ricavo_base"], params = PARAMS_V0)
+  ev_out = compute_enterprise_value(revenues = revs, fcff = fcff_out[2], params = cfg["rates_and_terminal"], nopat_h1 = fcff_out[0][:, -1] * (1 + ASSUMPTIONS_V0["g_inf"]))
+  bridge_out = compute_equity_and_price(ev = ev_out["ev"], bridge_params = cfg["bridge"], is_final_run = is_final_run)
 
   prices = bridge_out["share_price"]
-  evs = ev_out["enterprise_value"]
+  evs = ev_out["ev"]
 
   summary = {
     "status": status,
@@ -69,4 +65,19 @@ def run_pipeline(config_path: str, is_final_run: bool = False, override_sigma: f
 
 
   return summary
+
+
+if __name__ == "__main__":
+    res = run_pipeline(config_path = "config/config.yaml", is_final_run = False, override_sigma = None)
+    print("=" * 55)
+    print(f"RUN COMPLETATO (Stato dati: {res['status']})")
+    print("=" * 55)
+    print(f"Prezzo Implicito Medio:    ${res['price_mean']:.2f}")
+    print(f"Prezzo Implicito Mediano:  ${res['price_median']:.2f}")
+    print(f"Intervallo P5 - P95:       [${res['price_p5']:.2f} - ${res['price_p95']:.2f}]")
+    print(f"Errore Std MC su Prezzo:   ${res['price_std_err']:.4f}")
+    print(f"Enterprise Value Medio:    ${res['ev_mean']:.2f}B")
+    print(f"Peso medio Terminal Value: {res['mean_tv_weight'] * 100:.1f}%")
+    print(f"Percorsi Equity Negativo:  {res['negative_equity_count']}")
+    print("=" * 55)
 

@@ -1,60 +1,156 @@
-# Hey there G3, it's your turn to write some code now! Good work...
+# src/rates/model.py
+import pandas as pd
 import numpy as np
 
-# Local adapter contract only: actual G3 module names/signatures are pending.
-# G3 functions must be connected explicitly; no interpolation or TV formula
-# is assumed here.
+'''
+    WACC, Terminal Value, and Enterprise Value (Modulo G3 integrato da G4)
+    - Calculates 3-stage WACC and convergence vector over 10 years.
+    - Computes cumulative Discount Factors (DF_t).
+    - Estimates Terminal Value (TV) via value driver model.
+    - Computes Enterprise Value (EV) bridging FCFF flows from G2.
+'''
 
-def compute_enterprise_value(revenues: np.ndarray, fcff: np.ndarray, rates_and_terminal: dict, g3_functions: dict) -> dict:
+class WaccTerminalCalculator:
+    def __init__(self, price_share, beta, tax, rf=0.0496, erp=0.042, rd=0.0566,
+                 diluted_shares=1.366, debt_total=(9.223 + 42.658),
+                 g_inf=0.02, roic_inf=0.10, k_transition=0.5):
+        # Valori di default da D08 v1 (sovrascrivibili da config.yaml)
+        self.rf = rf
+        self.beta = beta
+        self.erp = erp
+        self.rd = rd
+        self.tax = tax
+        self.diluted_shares = diluted_shares
+        self.debt_total = debt_total
+        self.price_share = price_share
 
-  stages = ("growth", "transition", "maturity")
-  stage_years = rates_and_terminal["stage_years"]
-  wacc_by_stage = rates_and_terminal["wacc_by_stage"]
+        # Terminal Value parameters
+        self.g_inf = g_inf
+        self.roic_inf = roic_inf
+        self.k_transition = k_transition
 
-  if any(stage_years.get(s) is None or wacc_by_stage.get(s) is None for s in stages):
-    raise ValueError("Pending G2/G3: provide the duration and WACC of each stage")
+    def calculate_wacc_base(self):
+        # Vector WACC for growth stage (5 years)
+        D = self.debt_total
+        E = self.price_share * self.diluted_shares
+        re = self.rf + (self.beta * self.erp)
+        wacc = (E * re + D * self.rd * (1 - self.tax)) / (D + E)
+        return wacc
 
-  if any(isinstance(stage_years[s], bool) or
-         not isinstance(stage_years[s], (int, np.integer)) or
-         stage_years[s] < 0 for s in stages):
-    raise ValueError("Stage durations must be non-negative integer years")
+    def generate_wacc_vector(self, wacc_growth, wacc_maturity):
+        # Vector WACC for 10 years
+        wacc_vector = []
 
-  if sum(stage_years[s] for s in stages) != fcff.shape[1]:
-    raise ValueError("Stage durations must sum to the forecast horizon")
-  stage_rates = np.asarray([wacc_by_stage[s] for s in stages], dtype=float)
+        # Years 1-5: Growth
+        for _ in range(5):
+            wacc_vector.append(wacc_growth)
 
-  if not np.all(np.isfinite(stage_rates)) or np.any(stage_rates <= -1.0):
-    raise ValueError("Stage WACCs must be finite decimal rates greater than -1")
+        # Years 6-10: Transition
+        w_current = wacc_growth
+        for _ in range(5):
+            w_current += self.k_transition * (wacc_maturity - w_current)
+            wacc_vector.append(w_current)
 
-  # Adapter to G3's vector builder; one annual vector for every simulation path.
-  wacc_path = np.asarray(g3_functions["build_wacc_path"](
-      wacc_by_stage=wacc_by_stage, stage_years=stage_years), dtype=float)
+        return wacc_vector
 
-  if wacc_path.shape != (fcff.shape[1],):
-    raise ValueError("G3 must return one WACC per year, shared by all paths")
+    def calculate_terminal_value(self, nopat_h1, w_inf, g_inf, ROIC_inf):
+        # TV with value driver formula (funziona sia su scalare sia su array di 10.000 percorsi)
+        if w_inf <= g_inf:
+            raise ValueError("maturity WACC must be > g_inf")
+        if ROIC_inf < w_inf:
+            raise ValueError("terminal ROIC must not be lower than the maturity WACC")
+        reinvestment_rate = g_inf / ROIC_inf
+        TV = nopat_h1 * (1 - reinvestment_rate) / (w_inf - g_inf)
+        return TV
 
-  if not np.all(np.isfinite(wacc_path)) or np.any(wacc_path <= -1.0):
-    raise ValueError("Annual WACCs must be finite decimal rates greater than -1")
+    def calculate_discount_factors(self, wacc_vector):
+        # No rounding: with sigma = 0 the run must match the deterministic DCF
+        df_vector = []
+        df_cumulate = 1.0
+        for wacc_year in wacc_vector:
+            df_cumulate = df_cumulate * (1 / (1 + wacc_year))
+            df_vector.append(df_cumulate)
+        return df_vector
 
-  # Annual nominal USD rates; year-end discounting starts at t=1.
-  df_path = 1.0 / np.cumprod(1.0 + wacc_path)
-  ev0 = np.sum(fcff * df_path[None, :], axis=1)
+    def calculate_enterprise_value(self, TV, df_vector, fcff_vector):
+        # One path at a time: fcff_vector has the 10 yearly FCFF of G2
+        H = 10  # total years
+        ev0 = 0.0
+        for i in range(H):
+            ev0 += fcff_vector[i] * df_vector[i]
+        ev0 += TV * df_vector[H - 1]
+        return ev0
 
-  # Local adapter must return UNDISCOUNTED TV at H, one value per path.
-  # Adapt G3's actual output to this convention when their function arrives.
-  # Maturity WACC is the sole source for the terminal discount rate.
 
-  tv_h = np.asarray(g3_functions["compute_terminal_value"](
-      revenues=revenues, fcff=fcff,
-      wacc_terminal=float(wacc_by_stage["maturity"]),
-      terminal_parameters=rates_and_terminal), dtype=float)
+# --- FUNZIONE DI INTEGRAZIONE PER LA PIPELINE MONTE CARLO (G4) ---
+def compute_enterprise_value(revenues: np.ndarray, fcff: np.ndarray, params: dict, nopat_h1: np.ndarray = None) -> dict:
+    """
+    Usa la classe WaccTerminalCalculator di G3 per scontare i 10.000 percorsi Monte Carlo.
+    """
+    price_share = float(params.get("price_share", 138.83))
+    beta_growth = float(params.get("beta_growth", 0.52))
+    beta_maturity = float(params.get("beta_maturity", 0.80))
+    tax = float(params.get("tax_terminal", 0.21))
+    g_inf = float(params.get("g_terminal", 0.02))
+    roic_inf = float(params.get("roic_terminal", 0.10))
+    m_inf = float(params.get("margin_terminal", 0.16))
 
-  if tv_h.shape != (fcff.shape[0],) or not np.all(np.isfinite(tv_h)):
-    raise ValueError("G3 terminal adapter must return one finite TV at H per path")
+    # 1. Inizializza i calcolatori di G3 per lo stadio di crescita e di maturità
+    calc_growth = WaccTerminalCalculator(
+        price_share=price_share, beta=beta_growth, tax=tax,
+        rf=float(params.get("rf", 0.0496)), erp=float(params.get("erp", 0.042)),
+        rd=float(params.get("rd", 0.0566)), diluted_shares=float(params.get("diluted_shares", 1.366)),
+        debt_total=float(params.get("debt_total_wacc", 9.223 + 42.658)),
+        g_inf=g_inf, roic_inf=roic_inf, k_transition=float(params.get("k_transition", 0.5))
+    )
+    calc_maturity = WaccTerminalCalculator(
+        price_share=price_share, beta=beta_maturity, tax=tax,
+        rf=calc_growth.rf, erp=calc_growth.erp, rd=calc_growth.rd,
+        diluted_shares=calc_growth.diluted_shares, debt_total=calc_growth.debt_total
+    )
 
-  ev_tv = tv_h * df_path[-1]
+    w_growth = calc_growth.calculate_wacc_base()
+    w_maturity = calc_maturity.calculate_wacc_base()
 
-  ev = ev0 + ev_tv
-  tv_weight = ev_tv / ev
+    # 2. Genera il vettore WACC a 10 anni e i fattori di sconto DF_t con la logica di G3
+    wacc_vector = calc_growth.generate_wacc_vector(w_growth, w_maturity)
+    df_vector = np.asarray(calc_growth.calculate_discount_factors(wacc_vector), dtype=float)
 
-  return {"enterprise_value": ev, "ev0": ev0, "ev_tv": ev_tv, "tv_weight": tv_weight}
+    # 3. Calcola NOPAT_{H+1} (se non già passato direttamente da G2) e il Terminal Value di G3
+    if nopat_h1 is None:
+        r_h = revenues[:, -1]
+        nopat_h1 = r_h * (1.0 + g_inf) * m_inf * (1.0 - tax)
+
+    tv_h = calc_growth.calculate_terminal_value(nopat_h1, w_maturity, g_inf, roic_inf)
+
+    # 4. Calcola PV flussi espliciti, PV del Terminal Value ed EV su tutti i 10.000 percorsi
+    pv_explicit = np.sum(fcff * df_vector[None, :], axis=1)
+    pv_tv = tv_h * df_vector[-1]
+    ev = pv_explicit + pv_tv
+
+    return {
+        "ev": ev,
+        "pv_explicit": pv_explicit,
+        "pv_tv": pv_tv,
+        "tv_weight": pv_tv / ev,
+        "wacc_vector": wacc_vector,
+        "df_vector": df_vector
+    }
+
+
+if __name__ == "__main__":
+    # Values Test: D08 v1 (expected WACC 0.0657 growth, 0.0749 maturity)
+    price_share = 138.83  # close 2026-10-22
+    beta = 0.52           # observed beta of PEP (G5, D20) until D09
+    beta_maturity = 0.80  # G3 assumption, to be decided
+    tax = 0.21
+
+    calc = WaccTerminalCalculator(price_share, beta, tax)
+    w_growth = calc.calculate_wacc_base()
+    w_maturity = WaccTerminalCalculator(price_share, beta_maturity, tax).calculate_wacc_base()
+
+    vector = calc.generate_wacc_vector(w_growth, w_maturity)
+    df_factors = calc.calculate_discount_factors(vector)
+
+    print(f'Vector WACC (10 years):', [round(w, 4) for w in vector])
+    print(f"\nDiscount Factors (DF_t): {[round(d, 4) for d in df_factors]}")

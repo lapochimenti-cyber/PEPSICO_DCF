@@ -1,4 +1,4 @@
-emeta:
+meta:
   status: "provvisory"        # "synthetic" | "provvisory" | "real" -> it blocks the final run if != "real"
   currency: "USD"
   scale: "billions"          # of USD

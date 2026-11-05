@@ -4,7 +4,7 @@ from pathlib import Path
 
 from src.revenues.model import simulate_revenues, estimate_sigma
 from src.fcff.model import fcff, PARAMS_V0, ASSUMPTIONS_V0
-from src.retes.model import compute_enterprise_value
+from src.rates.model import compute_enterprise_value
 from src.bridge.model import compute_equity_and_price
 
 

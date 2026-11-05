@@ -43,7 +43,7 @@ def simulate_revenues(r0: float, g_path: np.ndarray, sigma: float, n_paths: int,
 if __name__ == "__main__":
 
     BASE_DIR = Path(__file__).resolve().parent.parent.parent
-    csv_path = BASE_DIR / "data" / "D04_ricavi_v1_G1.csv"
+    csv_path = BASE_DIR / "data" / "D04_ricavi_v2_G1.csv"
 
     # read the CSV file specifiying to the compiler that the separator used is the ';'
     df = pd.read_csv(csv_path, sep=";")

@@ -3,9 +3,9 @@ import numpy as np
 
 N_YEARS = 10
 N_GROWTH = 5
+K_GUIDE = 0.5   # convergence rate of the course guide (Arm paper, appendix B)
 
-LENGTHS = {"margine": 10, "aliquota": 10, "da": 5,
-           "capex": 5, "nwc": 5, "reinv_rate": 5}
+LENGTHS = {"margine": 10, "aliquota": 10, "da": 5, "capex": 5, "nwc": 5}
 
 
 def fcff(ricavi, ricavo_base, params):
@@ -13,11 +13,16 @@ def fcff(ricavi, ricavo_base, params):
 
     ricavi       (N, 10) simulated revenues, bn USD, column 0 = FY2026
     ricavo_base  FY2025 revenue, bn USD (from the shared config file)
-    params       dict with the keys in LENGTHS; extra keys are ignored
+    params       dict with the keys in LENGTHS plus the scalars rr_inf and k;
+                 extra keys are ignored
+
+    In years 6..10 each path starts from its own year-5 reinvestment rate
+    rr_5 = Reinv_5 / NOPAT_5 and converges to rr_inf with rate k, so the
+    transition has no jump at year 6.
 
     Raises ValueError on non-positive revenues, tax rates outside [0, 1],
-    missing parameters or wrong lengths. No clipping: negative FCFF is
-    returned as is.
+    k outside (0, 1], non-positive year-5 NOPAT, missing parameters or wrong
+    lengths. No clipping: negative FCFF is returned as is.
     """
     R = np.asarray(ricavi, dtype=float)
     if R.ndim != 2 or R.shape[1] != N_YEARS:
@@ -38,74 +43,97 @@ def fcff(ricavi, ricavo_base, params):
             raise ValueError(f"{name} contains NaN or inf")
     if np.any((p["aliquota"] < 0) | (p["aliquota"] > 1)):
         raise ValueError("aliquota outside [0, 1]")
+    for name in ("rr_inf", "k"):
+        if name not in params:
+            raise ValueError(f"missing parameter: {name}")
+        value = np.asarray(params[name], dtype=float)
+        if value.shape != () or not np.isfinite(value):
+            raise ValueError(f"{name} must be a finite scalar")
+        p[name] = float(value)
+    check_k(p["k"])
+           
+    # rr_5 divides by NOPAT_5, which must be positive on every path
+    if p["margine"][N_GROWTH - 1] <= 0 or p["aliquota"][N_GROWTH - 1] >= 1:
+        raise ValueError("year-5 margine must be > 0 and aliquota < 1")
 
     nopat = R * p["margine"] * (1.0 - p["aliquota"])
-    R_prev = np.column_stack([np.full(R.shape[0], float(ricavo_base)),
-                              R[:, :-1]])
+    R_prev = np.column_stack([np.full(R.shape[0], float(ricavo_base)), R[:, :-1]])
 
     reinvest = np.empty_like(R)
     g = slice(0, N_GROWTH)
-    reinvest[:, g] = (R[:, g] * (p["capex"] - p["da"])
-                      + (R[:, g] - R_prev[:, g]) * p["nwc"])
-    reinvest[:, N_GROWTH:] = p["reinv_rate"] * nopat[:, N_GROWTH:]
+    reinvest[:, g] = (R[:, g] * (p["capex"] - p["da"]) + (R[:, g] - R_prev[:, g]) * p["nwc"])
+
+    rr5 = reinvest[:, N_GROWTH - 1] / nopat[:, N_GROWTH - 1]
+    rr = convergence_path(rr5[:, None], p["rr_inf"], p["k"])
+    reinvest[:, N_GROWTH:] = rr * nopat[:, N_GROWTH:]
 
     return nopat, reinvest, nopat - reinvest
 
 
-def linear_path(x_start, x_inf, n=N_GROWTH):
-    """Values for years 6..10 moving linearly from x_start to x_inf."""
-    w = np.arange(1, n + 1) / n
-    return x_start + w * (x_inf - x_start)
+def check_k(k):
+    if not 0 < k <= 1:
+        raise ValueError("k must be in (0, 1]")
+
+
+def convergence_path(x_start, x_inf, k=K_GUIDE, n=N_GROWTH):
+    """Values for years 6..10 from the recursion x_t = x_{t-1} + k (x_inf - x_{t-1}).
+
+    Closed form: x_{5+j} = x_inf + (1 - k)**j (x_start - x_inf), j = 1..n.
+    With k = 0.5 year 10 keeps 1/32 of the initial gap; the maturity value
+    x_inf applies from year 11 (terminal value). x_start may be a column
+    (N, 1): the result is then (N, n), one row per path.
+    """
+    check_k(k)
+    decay = (1.0 - k) ** np.arange(1, n + 1)
+    return x_inf + decay * (x_start - x_inf)
+
+
+def growth_path(growth_explicit, g_inf, k=K_GUIDE):
+    """10 yearly growth rates: years 1..5 as given, years 6..10 converging to
+    g_inf with the same recursion. Used for the bear / base / growth
+    scenarios (one call per scenario); in the Monte Carlo it is the drift of
+    each scenario.
+    """
+    g = np.asarray(growth_explicit, dtype=float)
+    if g.shape != (N_GROWTH,):
+        raise ValueError("growth_explicit must have length 5")
+    return np.concatenate([g, convergence_path(g[-1], g_inf, k)])
 
 
 def build_params(a):
-    """Build the fcff params dict from an assumptions dict.
-
-    The transition starts from the year-5 reinvestment rate of the
-    deterministic path R_t = R_0 * prod(1 + growth) (option A of D02):
-    one rr_5 shared by all paths.
-    """
+    #Build the fcff params dict from an assumptions dict.
     if not 0 < a["g_inf"] < a["roic_inf"]:
         raise ValueError("need 0 < g_inf < roic_inf")
 
+    k = a["k"]
     m = np.asarray(a["m_growth"], dtype=float)
     tau = np.asarray(a["tau_growth"], dtype=float)
-    da = np.asarray(a["da"], dtype=float)
-    capex = np.asarray(a["capex"], dtype=float)
-    nwc = np.asarray(a["nwc"], dtype=float)
-    growth = np.asarray(a["growth"], dtype=float)
-
-    R = a["ricavo_base"] * np.cumprod(1.0 + growth)
-    nopat5 = R[-1] * m[-1] * (1.0 - tau[-1])
-    reinv5 = R[-1] * (capex[-1] - da[-1]) + (R[-1] - R[-2]) * nwc[-1]
-    rr5 = reinv5 / nopat5
 
     return {
         "status": a["status"],
-        "margine": np.concatenate([m, linear_path(m[-1], a["m_inf"])]),
-        "aliquota": np.concatenate([tau, linear_path(tau[-1], a["tau_inf"])]),
-        "da": da,
-        "capex": capex,
-        "nwc": nwc,
-        "reinv_rate": linear_path(rr5, a["g_inf"] / a["roic_inf"]),
+        "margine": np.concatenate([m, convergence_path(m[-1], a["m_inf"], k)]),
+        "aliquota": np.concatenate([tau, convergence_path(tau[-1], a["tau_inf"], k)]),
+        "da": np.asarray(a["da"], dtype=float),
+        "capex": np.asarray(a["capex"], dtype=float),
+        "nwc": np.asarray(a["nwc"], dtype=float),
+        "rr_inf": a["g_inf"] / a["roic_inf"],
+        "k": k,
     }
 
 
-# Every value below is PROVISIONAL except ricavo_base. Page numbers are the
-# printed pages of the FY2025 10-K (PDF page = printed + 3).
 ASSUMPTIONS_V0 = {
     "status": "provisional",
     "ricavo_base": 93.925,   # real: net revenue FY2025, 10-K p. 57
-    "growth": [0.04] * 5,    # placeholder until G1 scenarios (D05)
-    "m_growth": [0.159] * 5,  # core op. margin FY2025, 14.912/93.925, p. 42; until G1 D10
+    "m_growth": [0.159] * 5,  # core op. margin FY2025, 14.912/93.925, p. 42; restructuring rule open
     "m_inf": 0.155,          # placeholder until D14
     "tau_growth": [0.19] * 5,  # effective rate FY2025, 1.949/10.244, p. 57
-    "tau_inf": 0.20,         # placeholder until H10 with G3
-    "da": [0.035] * 5,       # D&A / revenue, FY2016-25 average
-    "capex": [0.055] * 5,    # capex / revenue, FY2016-25 average
-    "nwc": [-0.05] * 5,      # operating NWC / revenue FY2025 (-4.668/93.925)
-    "g_inf": 0.025,          # placeholder until G3
+    "tau_inf": 0.21,         # US statutory, same as G3's WACC (to confirm, H10)
+    "da": [0.035] * 5,       # D&A / revenue, FY2016-25 average, excl. ROU amortisation
+    "capex": [0.055] * 5,    # capex / revenue, FY2016-25 average (gross of PP&E sales)
+    "nwc": [-0.031] * 5,     # pooled 2016-25: (-3.703 + 2.724) / (93.925 - 62.799), Antonio
+    "g_inf": 0.025,          # placeholder until G3 (G1's g* = 2.5%)
     "roic_inf": 0.20,        # placeholder until D14
+    "k": K_GUIDE,            # course guide p. 28, same k as G1's scenarios
 }
 
 PARAMS_V0 = build_params(ASSUMPTIONS_V0)

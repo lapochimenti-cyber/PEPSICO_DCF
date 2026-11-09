@@ -14,14 +14,18 @@ revenues:
   sigma: 0.052941                # annual volatility (provvisory)
   g_path: [0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04]
 
-fcff_parameters:             # these data should arrive from G2
-  margine: [0.16, 0.16, 0.16, 0.16, 0.16, 0.16, 0.16, 0.16, 0.16, 0.16]
-  aliquota: [0.21, 0.21, 0.21, 0.21, 0.21, 0.21, 0.21, 0.21, 0.21, 0.21]
-  da: [0.0, 0.0, 0.0, 0.0, 0.0]
-  capex: [0.0, 0.0, 0.0, 0.0, 0.0]
-  nwc: [0.0, 0.0, 0.0, 0.0, 0.0]
-  reinv_rate: [0.25, 0.25, 0.25, 0.25, 0.25]
-  status: 
+fcff_parameters:            # these data should arrive from G2
+  status: "provvisory"                                 # "provvisory" | "real" -> it blocks the final run if != "real"
+  m_growth: [0.159, 0.159, 0.159, 0.159, 0.159]      # core op. margin FY2025, 14.912/93.925, p. 42; restructuring rule open
+  m_inf: 0.155                                       # placeholder until D14
+  tau_growth: [0.19, 0.19, 0.19, 0.19, 0.19]         # effective rate FY2025, 1.949/10.244, p. 57
+  tau_inf: 0.21                                      # US statutory, same as G3's WACC (to confirm, H10)
+  da: [0.035, 0.035, 0.035, 0.035, 0.035]            # D&A / revenue, FY2016-25 average, excl. ROU amortisation
+  capex: [0.055, 0.055, 0.055, 0.055, 0.055]         # capex / revenue, FY2016-25 average (gross of PP&E sales)
+  nwc: [-0.031, -0.031, -0.031, -0.031, -0.031]      # pooled 2016-25: (-3.703 + 2.724) / (93.925 - 62.799), Antonio
+  g_inf: 0.025                                       # placeholder until G3 (G1's g* = 2.5%)
+  roic_inf: 0.20                                     # placeholder until D14
+  k: 0.5                                         # course guide p. 28, same k as G1's scenarios
 
 rates_and_terminal:          # G3 (D08 v1) + G2
   price_share: 138.83        # Chiusura 2026-10-22

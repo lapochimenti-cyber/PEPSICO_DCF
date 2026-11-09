@@ -120,20 +120,3 @@ def build_params(a):
         "k": k,
     }
 
-
-ASSUMPTIONS_V0 = {
-    "status": "provisional",
-    "ricavo_base": 93.925,   # real: net revenue FY2025, 10-K p. 57
-    "m_growth": [0.159] * 5,  # core op. margin FY2025, 14.912/93.925, p. 42; restructuring rule open
-    "m_inf": 0.155,          # placeholder until D14
-    "tau_growth": [0.19] * 5,  # effective rate FY2025, 1.949/10.244, p. 57
-    "tau_inf": 0.21,         # US statutory, same as G3's WACC (to confirm, H10)
-    "da": [0.035] * 5,       # D&A / revenue, FY2016-25 average, excl. ROU amortisation
-    "capex": [0.055] * 5,    # capex / revenue, FY2016-25 average (gross of PP&E sales)
-    "nwc": [-0.031] * 5,     # pooled 2016-25: (-3.703 + 2.724) / (93.925 - 62.799), Antonio
-    "g_inf": 0.025,          # placeholder until G3 (G1's g* = 2.5%)
-    "roic_inf": 0.20,        # placeholder until D14
-    "k": K_GUIDE,            # course guide p. 28, same k as G1's scenarios
-}
-
-PARAMS_V0 = build_params(ASSUMPTIONS_V0)

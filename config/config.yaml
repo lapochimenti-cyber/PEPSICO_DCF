@@ -12,12 +12,12 @@ simulation:
 revenues:
   r0: 93.925                     # we will receive the actual data from gropus G1 and G4
   sigma: 0.052941                # annual volatility (provvisory)
-  g_path: [0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04]
+  g_path: [0.04, 0.04, 0.04, 0.04, 0.04, 0.035, 0.035, 0.03, 0.03, 0.03]
 
 fcff_parameters:            # these data should arrive from G2
   status: "provvisory"                                 # "provvisory" | "real" -> it blocks the final run if != "real"
-  m_growth: [0.159, 0.159, 0.159, 0.159, 0.159]      # core op. margin FY2025, 14.912/93.925, p. 42; restructuring rule open
-  m_inf: 0.155                                       # placeholder until D14
+  m_growth: [0.1538, 0.1538, 0.1538, 0.1538, 0.1538]      # core op. margin FY2025, 14.912/93.925, p. 42; restructuring rule open
+  m_inf: 0.1533                                       # placeholder until D14
   tau_growth: [0.19, 0.19, 0.19, 0.19, 0.19]         # effective rate FY2025, 1.949/10.244, p. 57
   tau_inf: 0.21                                      # US statutory, same as G3's WACC (to confirm, H10)
   da: [0.035, 0.035, 0.035, 0.035, 0.035]            # D&A / revenue, FY2016-25 average, excl. ROU amortisation

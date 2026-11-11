@@ -27,5 +27,5 @@ def test_monte_carlo_revenue_mean_matches_expected_trajectory():
 
 def test_final_run_blocks_provisional_data():
     # the final run needs to stop if the data are not the real ones
-    with pytest.raises(RuntimeError, match="BLOCCO PIPELINE"):
+    with pytest.raises(RuntimeError, match="Pipeline block: all data need to be in status 'real'!"):
         run_pipeline(config_path = "config/config.yaml",  is_final_run=True, override_sigma = None)

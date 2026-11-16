@@ -1,14 +1,27 @@
 import yaml
+import pandas as pd
 import numpy as np
 from pathlib import Path
 
-from src.revenues.model import simulate_revenues, estimate_sigma
+from src.revenues.model import simulate_revenues, estimate_sigma, load_g_path_from_d05
 from src.fcff.model import fcff, build_params
 from src.rates.model import compute_enterprise_value
 from src.bridge.model import compute_equity_and_price
 
+def load_g_path(xlsx_path: Path, scenario: str) -> np.ndarray:
+    """Legge i 10 tassi g_t dal foglio 'Scenari' di PEP_scenari.xlsx."""
+    col_map = {
+        "bear": "g_Basso",
+        "base": "g_Base",
+        "growth": "g_Alto",
+    }
+    if scenario not in col_map:
+        raise ValueError(f"Scenario non valido: {scenario}. Usa {list(col_map.keys())}")
+    
+    df = pd.read_excel(xlsx_path, sheet_name="Scenari")
+    return df[col_map[scenario]].dropna().to_numpy(dtype=float)[:10]
 
-def run_pipeline(config_path: str, is_final_run: bool = False, override_sigma: float = None) -> dict:
+def run_pipeline(config_path: str, scenario: str = "base", is_final_run: bool = False, override_sigma: float = None) -> dict:
   
   base_dir = Path(__file__).resolve().parent.parent
   with open(base_dir / config_path, "r") as f:
@@ -20,23 +33,18 @@ def run_pipeline(config_path: str, is_final_run: bool = False, override_sigma: f
   if is_final_run and status != "real":
     raise RuntimeError("Pipeline block: all data need to be in status 'real'!")
 
-  '''
-  if any(cfg["rates_and_terminal"][key].get(stage) is None
-         for key in ("stage_years", "wacc_by_stage")
-         for stage in ("growth", "transition", "maturity")):
-    raise ValueError("Pending G2/G3: stage durations and WACC values are required")
-  '''
-
   seed = int(cfg["simulation"]["seed"])
   n_paths = int(cfg["simulation"]["n_paths"])
   r0 = float(cfg["revenues"]["r0"])
-  g_path = np.asarray(cfg["revenues"]["g_path"], dtype = float)
+  d05_path = base_dir / cfg["revenues"]["d05"]["source"]
+  g_path = load_g_path(d05_path, scenario)
   sigma = float(cfg["revenues"]["sigma"]) if override_sigma is None else override_sigma
-
+  fcff_cfg = dict(cfg["fcff_parameters"])
+  fcff_cfg["s_inf"] = float(cfg["fcff_parameters"]["s_inf"][scenario])
 
   # chain execution G1->G2->G3, the name are provvisory: we will implement the right functions once we have them
   revs = simulate_revenues(r0 = r0, g_path = g_path, sigma = sigma, n_paths = n_paths, seed = seed)
-  fcff_out = fcff(ricavi = revs, ricavo_base = r0, params = build_params(cfg["fcff_parameters"]))
+  fcff_out = fcff(ricavi = revs, ricavo_base = r0, params = build_params(fcff_cfg))
   ev_out = compute_enterprise_value(revenues = revs, fcff = fcff_out[2], params = cfg["rates_and_terminal"], nopat_h1 = fcff_out[0][:, -1] * (1 + cfg["fcff_parameters"]["g_inf"]))
   bridge_out = compute_equity_and_price(ev = ev_out["ev"], bridge_params = cfg["bridge"], is_final_run = is_final_run)
 
@@ -68,16 +76,19 @@ def run_pipeline(config_path: str, is_final_run: bool = False, override_sigma: f
 
 
 if __name__ == "__main__":
-    res = run_pipeline(config_path = "config/config.yaml", is_final_run = False, override_sigma = None)
-    print("=" * 55)
-    print(f"RUN COMPLETATO (Stato dati: {res['status']})")
-    print("=" * 55)
-    print(f"Prezzo Implicito Medio:    ${res['price_mean']:.2f}")
-    print(f"Prezzo Implicito Mediano:  ${res['price_median']:.2f}")
-    print(f"Intervallo P5 - P95:       [${res['price_p5']:.2f} - ${res['price_p95']:.2f}]")
-    print(f"Errore Std MC su Prezzo:   ${res['price_std_err']:.4f}")
-    print(f"Enterprise Value Medio:    ${res['ev_mean']:.2f}B")
-    print(f"Peso medio Terminal Value: {res['mean_tv_weight'] * 100:.1f}%")
-    print(f"Percorsi Equity Negativo:  {res['negative_equity_count']}")
-    print("=" * 55)
+    scenarios = ["bear", "base", "growth"]
+    results_by_scenario = {}
+
+    for sc in scenarios:
+        res = run_pipeline(config_path = "config/config.yaml", scenario = sc, is_final_run = False)
+        results_by_scenario[sc] = res
+
+        print("=" * 50)
+        print(f"SCENARIO: {sc.upper()} | Stato: {res['status']} | Seed: {res['seed']}")
+        print("=" * 50)
+        print(f"Prezzo Medio:     ${res['price_mean']:.2f}")
+        print(f"Prezzo Mediano:   ${res['price_median']:.2f}")
+        print(f"Intervallo P5-95: [${res['price_p5']:.2f} - ${res['price_p95']:.2f}]")
+        print(f"EV Medio:         ${res['ev_mean']:.2f}B (SE MC: ${res['ev_std_err']:.4f}B)")
+        print(f"Peso medio TV:    {res['mean_tv_weight']*100:.1f}%")
 

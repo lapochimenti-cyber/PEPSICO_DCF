@@ -10,8 +10,11 @@ base_dir = Path(__file__).resolve().parent.parent
 with open(base_dir / config_path, "r") as f:
     cfg = yaml.safe_load(f)
 
+fcff_cfg = dict(cfg["fcff_parameters"])
+if isinstance(fcff_cfg.get("s_inf"), dict):
+    fcff_cfg["s_inf"] = float(fcff_cfg["s_inf"]["base"])
 
-PARAMS_V0 = build_params(cfg["fcff_parameters"])
+PARAMS_V0 = build_params(fcff_cfg)
                     
 def example_params():
     """Invented numbers of the D02 example (growth years)."""
@@ -179,13 +182,13 @@ def test_v0_params_are_labelled_provisional():
 
 
 def test_v0_year_10_is_1_32_of_the_gap_from_maturity():
-    a = cfg["fcff_parameters"]
+    a = fcff_cfg
     m5, tau5 = a["m_growth"][-1], a["tau_growth"][-1]
     assert PARAMS_V0["margine"][9] == pytest.approx(
         a["m_inf"] + (m5 - a["m_inf"]) / 32)
     assert PARAMS_V0["aliquota"][9] == pytest.approx(
         a["tau_inf"] + (tau5 - a["tau_inf"]) / 32)
-    assert PARAMS_V0["rr_inf"] == pytest.approx(a["g_inf"] / a["roic_inf"])
+    assert PARAMS_V0["rr_inf"] == pytest.approx(a["g_inf"] / (a["w_inf"] + a["s_inf"]))
 
 
 def test_v0_deterministic_reference_path():
@@ -195,15 +198,31 @@ def test_v0_deterministic_reference_path():
     R = cfg["revenues"]["r0"] * np.cumprod(1 + growth_path([0.04] * 5, a["g_inf"]))
     nopat, reinv, flow = fcff(R[None, :], cfg["revenues"]["r0"], PARAMS_V0)
     expected_fcff = [10.3319, 10.7451, 11.1749, 11.6219, 12.0868,
-                    12.4937, 12.8583, 13.2062, 13.5498, 13.8954]
+                     11.2371, 10.9329, 10.9077, 11.0277, 11.2253]
     np.testing.assert_allclose(flow[0], expected_fcff, atol=1e-3)
     assert nopat[0, 0] == pytest.approx(12.1690, abs=1e-3)
-    assert reinv[0, 9] == pytest.approx(1.9998, abs=1e-3)
+    assert reinv[0, 9] == pytest.approx(4.6699, abs=1e-3)
     assert reinv[0, 4] / nopat[0, 4] == pytest.approx(0.1510, abs=1e-4)
-    assert reinv[0, 9] / nopat[0, 9] == pytest.approx(0.1258, abs=1e-4)
+    assert reinv[0, 9] / nopat[0, 9] == pytest.approx(0.2938, abs=1e-4)
 
 
 def test_build_params_rejects_g_above_roic():
-    a = dict(cfg["fcff_parameters"], g_inf=0.25)
+    a = dict(fcff_cfg, g_inf=0.25)
     with pytest.raises(ValueError):
         build_params(a)
+
+def test_build_params_rejects_negative_spread():
+    fcff_cfg = dict(cfg["fcff_parameters"])
+    fcff_cfg["s_inf"] = -0.01
+    with pytest.raises(ValueError, match="s_inf"):
+        build_params(fcff_cfg)
+
+def test_rr_inf_is_g_over_wacc_plus_spread_by_scenario():
+    # G3's D13 v1: ROIC_inf = w_inf + s_inf, spreads 0 / 1.5% / 2.5%, w_inf 6.88%
+    expected = {"bear": 0.3635, "base": 0.2984, "growth": 0.2666}
+    scenarios = ["bear", "base", "growth"]
+    for sc in scenarios:
+        fcff_cfg = dict(cfg["fcff_parameters"])
+        fcff_cfg["s_inf"] = float(cfg["fcff_parameters"]["s_inf"][sc])
+        p = build_params(fcff_cfg)
+        assert p["rr_inf"] == pytest.approx(expected[sc], abs=1e-4)

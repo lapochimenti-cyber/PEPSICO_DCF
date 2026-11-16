@@ -4,6 +4,7 @@ meta:
   scale: "billions"          # of USD
   valuation_date: "2026-10-21"
   horizon_years: 10          # H = 10 years projection
+  scenario: "base"             # "bear" | "base" | "growth" -> it selects the g_path from D05 and the s_inf from G2
 
 simulation:
   seed: 42                   # does not metter what you choose but fixing it from the beginning allows reproducibility of our simiulation if we would like to check somenthing
@@ -13,6 +14,10 @@ revenues:
   r0: 93.925                     # we will receive the actual data from gropus G1 and G4
   sigma: 0.052941                # annual volatility (provvisory)
   g_path: [0.04, 0.04, 0.04, 0.04, 0.04, 0.035, 0.035, 0.03, 0.03, 0.03]
+  d05:
+    source: data/d05/PEP_scenari.xlsx
+    scenario: base
+    status: provisional
 
 fcff_parameters:            # these data should arrive from G2
   status: "provvisory"                                 # "provvisory" | "real" -> it blocks the final run if != "real"
@@ -24,7 +29,11 @@ fcff_parameters:            # these data should arrive from G2
   capex: [0.055, 0.055, 0.055, 0.055, 0.055]         # capex / revenue, FY2016-25 average (gross of PP&E sales)
   nwc: [-0.031, -0.031, -0.031, -0.031, -0.031]      # pooled 2016-25: (-3.703 + 2.724) / (93.925 - 62.799), Antonio
   g_inf: 0.025                                       # placeholder until G3 (G1's g* = 2.5%)
-  roic_inf: 0.20                                     # placeholder until D14
+  s_inf:
+    bear: 0.0
+    base: 0.015
+    growth: 0.025                                            # placeholder until G3 (G1's s* = 16%)
+  w_inf: 0.068784544747418769                                     # placeholder until D14
   k: 0.5                                         # course guide p. 28, same k as G1's scenarios
 
 rates_and_terminal:          # G3 (D08 v1) + G2

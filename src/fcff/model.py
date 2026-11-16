@@ -101,9 +101,12 @@ def growth_path(growth_explicit, g_inf, k=K_GUIDE):
 
 
 def build_params(a):
-    #Build the fcff params dict from an assumptions dict.
-    if not 0 < a["g_inf"] < a["roic_inf"]:
-        raise ValueError("need 0 < g_inf < roic_inf")
+    # Maturity ROIC as in G3's terminal value (D13): maturity WACC + spread.
+    if a["s_inf"] < 0:
+        raise ValueError("s_inf must be >= 0 (ROIC_inf not below WACC_inf)")
+    if not 0 < a["g_inf"] < a["w_inf"]:
+        raise ValueError("need 0 < g_inf < w_inf")
+    roic_inf = a["w_inf"] + a["s_inf"]
 
     k = a["k"]
     m = np.asarray(a["m_growth"], dtype=float)
@@ -116,7 +119,7 @@ def build_params(a):
         "da": np.asarray(a["da"], dtype=float),
         "capex": np.asarray(a["capex"], dtype=float),
         "nwc": np.asarray(a["nwc"], dtype=float),
-        "rr_inf": a["g_inf"] / a["roic_inf"],
+        "rr_inf": a["g_inf"] / roic_inf,
         "k": k,
     }
 

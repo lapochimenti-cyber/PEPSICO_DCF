@@ -63,4 +63,14 @@ if __name__ == "__main__":
     print(f"Sigma stimato (ddof=1):     {sigma_hat:.6f} ({sigma_hat*100:.2f}%)")
     print("=" * 55)
 
-    
+
+
+def load_g_path_from_d05(xlsx_path: Path, scenario: str) -> np.ndarray:
+    """Estrae i 10 tassi di crescita g_t per lo scenario scelto ('bear', 'base', 'growth')."""
+    df = pd.read_excel(xlsx_path)  # adegua sheet_name / nome colonna in base all'output del check su PEP_scenari.xlsx
+    col_map = {
+        "bear": "Bear",       # sostituisci con i nomi esatti delle colonne di PEP_scenari.xlsx
+        "base": "Base",
+        "growth": "Growth",
+    }
+    return df[col_map[scenario]].dropna().to_numpy(dtype=float)[:10]

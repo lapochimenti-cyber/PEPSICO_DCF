@@ -11,8 +11,10 @@ with open(base_dir / config_path, "r") as f:
     cfg = yaml.safe_load(f)
 
 fcff_cfg = dict(cfg["fcff_parameters"])
-if isinstance(fcff_cfg.get("s_inf"), dict):
-    fcff_cfg["s_inf"] = float(fcff_cfg["s_inf"]["base"])
+for key in ["s_inf", "m_growth", "m_inf"]:
+    if isinstance(fcff_cfg.get(key), dict):
+        fcff_cfg[key] = fcff_cfg[key]["base"]
+
 
 PARAMS_V0 = build_params(fcff_cfg)
                     

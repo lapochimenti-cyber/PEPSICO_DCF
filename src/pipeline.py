@@ -41,6 +41,8 @@ def run_pipeline(config_path: str, scenario: str = "base", is_final_run: bool = 
   sigma = float(cfg["revenues"]["sigma"]) if override_sigma is None else override_sigma
   fcff_cfg = dict(cfg["fcff_parameters"])
   fcff_cfg["s_inf"] = float(cfg["fcff_parameters"]["s_inf"][scenario])
+  fcff_cfg["m_growth"] = list(cfg["fcff_parameters"]["m_growth"][scenario])
+  fcff_cfg["m_inf"] = float(cfg["fcff_parameters"]["m_inf"][scenario])
 
   # chain execution G1->G2->G3, the name are provvisory: we will implement the right functions once we have them
   revs = simulate_revenues(r0 = r0, g_path = g_path, sigma = sigma, n_paths = n_paths, seed = seed)

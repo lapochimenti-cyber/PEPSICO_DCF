@@ -21,8 +21,14 @@ revenues:
 
 fcff_parameters:            # these data should arrive from G2
   status: "provvisory"                                 # "provvisory" | "real" -> it blocks the final run if != "real"
-  m_growth: [0.1538, 0.1538, 0.1538, 0.1538, 0.1538]      # core op. margin FY2025, 14.912/93.925, p. 42; restructuring rule open
-  m_inf: 0.1533                                       # placeholder until D14
+  m_growth: 
+    bear: [0.15093407239819007, 0.1480731727442108, 0.14521227309023158, 0.14235137343625232, 0.13949047378227308]
+    base: [0.15373407239819006, 0.15367317274421083, 0.15361227309023157, 0.15355137343625233, 0.1534904737822731]
+    growth: [0.15493407239819007, 0.15607317274421081, 0.15721227309023159, 0.15835137343625233, 0.1594904737822731]                                                   # core op. margin FY2025, 14.912/93.925, p. 42; restructuring rule open
+  m_inf:
+    bear: 0.138
+    base: 0.153
+    growth: 0.16                                      # placeholder until D14
   tau_growth: [0.19, 0.19, 0.19, 0.19, 0.19]         # effective rate FY2025, 1.949/10.244, p. 57
   tau_inf: 0.21                                      # US statutory, same as G3's WACC (to confirm, H10)
   da: [0.035, 0.035, 0.035, 0.035, 0.035]            # D&A / revenue, FY2016-25 average, excl. ROU amortisation
@@ -32,7 +38,8 @@ fcff_parameters:            # these data should arrive from G2
   s_inf:
     bear: 0.0
     base: 0.015
-    growth: 0.025                                            # placeholder until G3 (G1's s* = 16%)
+    growth: 0.025                                     
+  s_sensitivity: 0.05                                 
   w_inf: 0.068784544747418769                                     # placeholder until D14
   k: 0.5                                         # course guide p. 28, same k as G1's scenarios
 

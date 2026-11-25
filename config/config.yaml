@@ -11,8 +11,11 @@ simulation:
   n_paths: 10000
 
 revenues:
-  r0: 93.925                     # we will receive the actual data from gropus G1 and G4
-  sigma: 0.052941                # annual volatility (provvisory)
+  r0: 93.925
+  sigma: 0.05294302584051538
+  sigma_status: provisional
+  historical_csv: data/D04_ricavi_v2_G1.csv
+  historical_column: Ricavi Corretti ($B)
   g_path: [0.04, 0.04, 0.04, 0.04, 0.04, 0.035, 0.035, 0.03, 0.03, 0.03]
   d05:
     source: data/d05/PEP_scenari.xlsx
@@ -43,22 +46,38 @@ fcff_parameters:            # these data should arrive from G2
   w_inf: 0.068784544747418769                                     # placeholder until D14
   k: 0.5                                         # course guide p. 28, same k as G1's scenarios
 
-rates_and_terminal:          # G3 (D08 v1) + G2
-  price_share: 138.83        # Chiusura 2026-10-22
-  rf: 0.0496                 # 10Y Treasury FRED DGS10
-  erp: 0.042                 # Implied ERP Damodaran
-  rd: 0.0566                 # Pre-tax cost of debt (A+)
-  beta_growth: 0.52          # Beta osservato PEP (provvisorio in attesa di D09)
-  beta_maturity: 0.80        # Ipotesi G3 di convergenza a maturità
-  k_transition: 0.5          # Velocità di convergenza WACC anni 6-10
+rates_and_terminal:
+  price_share: 128.34
+  rf: 0.0522
+  erp: 0.042
+  rd: 0.0592
+  beta_growth: 0.511
+  beta_maturity: 0.55
+  k_transition: 0.5
   diluted_shares: 1.366
-  debt_total_wacc: 51.881    # 9.223 (short-term) + 42.658 (long-term)
-  g_terminal: 0.02           # g_inf provvisorio
-  roic_terminal: 0.10        # ROIC_inf provvisorio
-  margin_terminal: 0.16      # da allineare con G2
-  tax_terminal: 0.21         # H10
+  debt_total_wacc: 51.881
+  g_terminal: 0.025            # ROIC terminale calcolato nella pipeline: w_inf + spread G2 dello scenario.
+  margin_terminal: 0.155
+  tax_terminal: 0.21
+  status: real
+  tax_marginal: 0.21
+  wacc_growth: 0.06752159394991522
+  wacc_maturity: 0.06878454474741877
+  wacc_by_year:
+  - 0.06752159394991522
+  - 0.06752159394991522
+  - 0.06752159394991522
+  - 0.06752159394991522
+  - 0.06752159394991522
+  - 0.068153069348667
+  - 0.06846880704804288
+  - 0.06862667589773083
+  - 0.0687056103225748
+  - 0.06874507753499678
+  first_year_fraction: 0.3076923076923077
+  first_discount_period: 0.21703296703296704
 
-bridge:                      # G3 (Ponte EV -> Equity, somma attesa: -41.111 USD bn)
+bridge:
   diluted_shares: 1.366
   items:
     cash_and_equivalents: 10.675
@@ -67,16 +86,9 @@ bridge:                      # G3 (Ponte EV -> Equity, somma attesa: -41.111 USD
     celsius_convertible_preferred: 1.482
     short_term_debt: -9.223
     long_term_debt: -42.658
-    euro_notes_oct_2026: -1.126
-    pension_and_medical_after_tax: -0.55379   # -(0.233 + 0.468) * (1 - 0.21)
+    pension_and_medical_after_tax: -0.55379
     non_controlling_interests: -0.195
-  provisional_items:
-    - "cash_and_equivalents"
-    - "short_term_investments"
-    - "celsius_convertible_preferred"
-    - "short_term_debt"
-    - "long_term_debt"
-    - "euro_notes_oct_2026"
-    - "pension_and_medical_after_tax"
-    - "non_controlling_interests"
-    - "diluted_shares"
+    cash_restricted_russia: 0.0
+    receivables_tbg: 0.0
+    dividends_payable: -2.0360000000000005
+  provisional_items: []

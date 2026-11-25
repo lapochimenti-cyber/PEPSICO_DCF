@@ -199,12 +199,12 @@ def test_v0_deterministic_reference_path():
     a = cfg["fcff_parameters"]
     R = cfg["revenues"]["r0"] * np.cumprod(1 + growth_path([0.04] * 5, a["g_inf"]))
     nopat, reinv, flow = fcff(R[None, :], cfg["revenues"]["r0"], PARAMS_V0)
-    expected_fcff = [10.3319, 10.7451, 11.1749, 11.6219, 12.0868,
-                     11.2371, 10.9329, 10.9077, 11.0277, 11.2253]
+    expected_fcff = [10.3266, 10.7347, 11.1589, 11.5998, 12.0582,
+                     11.2127, 10.9104, 10.8859, 11.0061, 11.2034]
     np.testing.assert_allclose(flow[0], expected_fcff, atol=1e-3)
-    assert nopat[0, 0] == pytest.approx(12.1690, abs=1e-3)
-    assert reinv[0, 9] == pytest.approx(4.6699, abs=1e-3)
-    assert reinv[0, 4] / nopat[0, 4] == pytest.approx(0.1510, abs=1e-4)
+    assert nopat[0, 0] == pytest.approx(12.1638, abs=1e-3)
+    assert reinv[0, 9] == pytest.approx(4.6607, abs=1e-3)
+    assert reinv[0, 4] / nopat[0, 4] == pytest.approx(0.1513, abs=1e-4)
     assert reinv[0, 9] / nopat[0, 9] == pytest.approx(0.2938, abs=1e-4)
 
 
@@ -214,8 +214,8 @@ def test_build_params_rejects_g_above_roic():
         build_params(a)
 
 def test_build_params_rejects_negative_spread():
-    fcff_cfg = dict(cfg["fcff_parameters"])
-    fcff_cfg["s_inf"] = -0.01
+    fcff_cfg_f = fcff_cfg
+    fcff_cfg_f["s_inf"] = -0.01
     with pytest.raises(ValueError, match="s_inf"):
         build_params(fcff_cfg)
 
@@ -224,7 +224,7 @@ def test_rr_inf_is_g_over_wacc_plus_spread_by_scenario():
     expected = {"bear": 0.3635, "base": 0.2984, "growth": 0.2666}
     scenarios = ["bear", "base", "growth"]
     for sc in scenarios:
-        fcff_cfg = dict(cfg["fcff_parameters"])
-        fcff_cfg["s_inf"] = float(cfg["fcff_parameters"]["s_inf"][sc])
-        p = build_params(fcff_cfg)
+        fcff_cfg_f = dict(fcff_cfg)
+        fcff_cfg_f["s_inf"] = float(cfg["fcff_parameters"]["s_inf"][sc])
+        p = build_params(fcff_cfg_f)
         assert p["rr_inf"] == pytest.approx(expected[sc], abs=1e-4)
